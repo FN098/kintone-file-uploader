@@ -20,13 +20,13 @@
                 "<node_internals>/**"
             ],
             "env": {
-                "KINTONE_DOMAIN": "example.cybozu.com",
-                "KINTONE_USERNAME": "username",
-                "KINTONE_PASSWORD": "password",
-                "KINTONE_APP_ID": "123",
-                "KINTONE_FILE_KEY_CODE": "sample",
-                "KINTONE_FILE_FIELD_CODE": "file",
-                "KINTONE_FILE_EXTENSION": ".pdf",
+                "domain": "{サブドメイン名}.cybozu.com",
+                "user": "{ログインユーザー名}",
+                "password": "{ログインパスワード}",
+                "app": "{アプリID}",
+                "fname": "{関連付けるファイル名の文字列フィールドコード}",
+                "fcode": "{添付ファイルフィールドコード}",
+                "fext": "{アップロードするファイル拡張子}"
             },
             "program": "${workspaceFolder}\\main.js"
         }
