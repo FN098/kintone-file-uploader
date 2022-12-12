@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@kintone/rest-api-client": "^3.2.2",
+    "Blob": "^0.10.0",
+    "glob": "^8.0.3"
+  }
+}
