@@ -24,7 +24,7 @@
                 "KINTONE_USERNAME": "username",
                 "KINTONE_PASSWORD": "password",
                 "KINTONE_APP_ID": "123",
-                "KINTONE_FILE_NAME_CODE": "sample",
+                "KINTONE_FILE_KEY_CODE": "sample",
                 "KINTONE_FILE_FIELD_CODE": "file",
                 "KINTONE_FILE_EXTENSION": ".pdf",
             },
