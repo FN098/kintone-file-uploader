@@ -1,5 +1,5 @@
 /*
- * kintone JavaScript Client file uploader (for Node.js)
+ * kintone JavaScript Client File Uploader (for Node.js)
  * Copyright (c) 2022 Futoshi Nishino
  *
  * Licensed under the MIT License
@@ -8,7 +8,7 @@
 
 'use strict';
 
-console.log("kintone JavaScript Client file uploader (for Node.js)");
+console.log("kintone JavaScript Client File Uploader (for Node.js)");
 
 // モジュールインポート
 const glob = require('glob');
@@ -16,6 +16,7 @@ const axios = require('axios');
 const formdata = require('form-data');
 const path = require('path');
 const fs = require('fs');
+const parse = require('csv-parse/sync');
 const { KintoneRestAPIClient } = require('@kintone/rest-api-client');
 
 // 環境変数インポート
@@ -25,9 +26,7 @@ const PASSWORD = process.env.password;
 const APP = process.env.app;
 const FILE_NAME = process.env.fname;
 const FILE_CODE = process.env.fcode;
-const FILE_EXT = process.env.fext;
-
-if (!(DOMAIN && USER && PASSWORD && APP && FILE_NAME && FILE_CODE && FILE_EXT)) {
+if (!(DOMAIN && USER && PASSWORD && APP && FILE_NAME && FILE_CODE)) {
   throw Error("必須の環境変数が設定されていません。");
 }
 
@@ -56,38 +55,84 @@ const uploadFile = async (filePath) => {
   return res;
 }
 
+// (kintoneからインポートした)CSV読み込み
+const getAllRecordsFromCsv = (filePath) => {
+  const data = fs.readFileSync(filePath);
+  const rawRecords = parse.parse(data, {
+    columns: true
+  });
+  const records = rawRecords.map(r => {
+    return {
+      $id: {
+        value: r.レコード番号,
+      },
+      [FILE_NAME]: {
+        value: r[FILE_NAME]
+      },
+      [FILE_CODE]: {
+        value: []
+      },
+    }
+  });
+  return records;
+}
+
 // メイン関数
 async function main() {
   try {
     // ファイル取得
-    const files = await glob.sync(`**/*${FILE_EXT}`);
+    const allFiles = glob.sync(`assets/upload/**/*`).filter(f => f.match('.+\.(pdf)$'))
     
-    // 全レコード取得
-    const records = await client.record.getAllRecords({ app: APP });
+    // kintone APIで全レコード取得（遅い）
+    // const allRecords = await client.record.getAllRecords({ app: APP });
 
-    // ファイルアップロード
-    for (let r of records) {
-      // ファイル名にキーコードを含むファイルを抽出
-      const filteredFiles = files.filter(f => {
+    // CSVファイルから全レコード取得（速い）
+    const allRecords = getAllRecordsFromCsv('assets/data.csv');
+
+    // レコードの（ファイル名を表す）名前に一致するファイルをマッピング
+    const recordsToUpdate = [];
+    const filesToUpload = [];
+    for (let r of allRecords) {
+      const files = allFiles.filter(f => {
         const fname = path.basename(f);
-        return fname.indexOf(r[FILE_NAME].value) != -1;  
-      });
+        return fname.indexOf(r[FILE_NAME].value) != -1;
+      })
+      if (files.length > 0) {
+        recordsToUpdate.push(r);
+        filesToUpload.push(files);
+      }
+    }
 
-      // 既存のファイルを削除する場合
-      // r[FILE_CODE].value = [];
+    // マッピングしたファイルをアップロード
+    for (let i = 0; i < recordsToUpdate.length; i++) {
+      // 進捗率を表示
+      const current = i + 1;
+      const total = recordsToUpdate.length;
+      const progress = Math.round(current / total * 100);
+      console.log(`${progress}% (${current} of ${total} records)\r`);
+
+      // アップロードファイル
+      const files = filesToUpload[i];
+
+      // 更新レコード
+      const record = recordsToUpdate[i];
+
+      // 既存のファイルを削除
+      record[FILE_CODE].value = [];
 
       // ファイルをアップロードし、ファイルキーをレコードに関連付け
-      for (let f of filteredFiles) {
-        const res = await uploadFile(f);
-        r[FILE_CODE].value.push(res.data);
-        console.log(`upload: "${f}"`);
+      for (let file of files) {
+        const resp = await uploadFile(file);
+        const fileKey = resp.data;
+        record[FILE_CODE].value.push(fileKey);
+        console.log(`upload: "${file}"\r`);
       }
     }
 
     // 全レコード更新
     const params = {
       app: APP,
-      records: records.map(r => {
+      records: recordsToUpdate.map(r => {
         return {
           id: r.$id.value, 
           record: {
@@ -107,4 +152,6 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
