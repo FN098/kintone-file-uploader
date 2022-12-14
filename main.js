@@ -83,22 +83,22 @@ async function main() {
     // ファイル取得
     const allFiles = glob.sync(`assets/upload/**/*`).filter(f => f.match('.+\.(pdf)$'))
     
-    // kintone APIで全レコード取得（遅い）
+    // kintone REST APIで全レコード取得（遅い）
     // const allRecords = await client.record.getAllRecords({ app: APP });
 
     // CSVファイルから全レコード取得（速い）
     const allRecords = getAllRecordsFromCsv('assets/data.csv');
 
-    // レコードの（ファイル名を表す）名前に一致するファイルをマッピング
+    // ファイル名が一致するレコードとファイルをマッピング
     const recordsToUpdate = [];
     const filesToUpload = [];
-    for (let r of allRecords) {
+    for (let record of allRecords) {
       const files = allFiles.filter(f => {
         const fname = path.basename(f);
-        return fname.indexOf(r[FILE_NAME].value) != -1;
+        return fname.indexOf(record[FILE_NAME].value) != -1;
       })
       if (files.length > 0) {
-        recordsToUpdate.push(r);
+        recordsToUpdate.push(record);
         filesToUpload.push(files);
       }
     }
